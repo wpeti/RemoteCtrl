@@ -5,11 +5,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
+import android.preference.PreferenceManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -44,27 +46,8 @@ public class Control extends AppCompatActivity {
 
     TouchFrameLayout touchAreaLayout;
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        MenuInflater inflater = getMenuInflater();
-        inflater.inflate(R.menu.ctrl_menu, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.action_settings:
-                // User chose the "Settings" item, show the app settings UI...
-                return true;
-
-            default:
-                // If we got here, the user's action was not recognized.
-                // Invoke the superclass to handle it.
-                return super.onOptionsItemSelected(item);
-
-        }
-    }
+    SocketClient clientObj;
+    SocketServer serverObj;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,6 +58,16 @@ public class Control extends AppCompatActivity {
         cyEditText = (EditText) findViewById(R.id.editText4);
         textView = (TextView) findViewById(R.id.textView);
         connectBtn = (Button) findViewById(R.id.Connect);
+
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        final String serverIP = prefs.getString(SettingsActivity.PREF_REMOTE_IP, "");
+        if (prefs.getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
+            clientObj = new SocketClient() {{
+                Server_ip = serverIP;
+            }};
+        } else {
+            serverObj = new SocketServer(textView);
+        }
 
         touchAreaLayout = (TouchFrameLayout) findViewById(R.id.touchArea);
 
@@ -97,26 +90,59 @@ public class Control extends AppCompatActivity {
     }
 
     @Override
+    protected void onStop() {
+        super.onStop();
+        unregisterReceiver(broadcastReceiver);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        MenuInflater inflater = getMenuInflater();
+        inflater.inflate(R.menu.ctrl_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
+            case R.id.action_settings:
+                // User chose the "Settings" item, show the app settings UI...
+                Intent settingsIntent = new Intent(this, SettingsActivity.class);
+                startActivity(settingsIntent);
+                return true;
+
+            default:
+                // If we got here, the user's action was not recognized.
+                // Invoke the superclass to handle it.
+                return super.onOptionsItemSelected(item);
+
+        }
+    }
+
+    @Override
     public boolean onTouchEvent(MotionEvent event) {
-        int x = (int) event.getX();
-        int y = (int) event.getY();
+        if (PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
+            int x = (int) event.getX();
+            int y = (int) event.getY();
 
-        Rect rect = new Rect();
-        touchAreaLayout.getGlobalVisibleRect(rect);
+            Rect rect = new Rect();
+            touchAreaLayout.getGlobalVisibleRect(rect);
 
-        int touchLeft = (int) rect.left;
-        int touchTop = (int) rect.top;
+            int touchLeft = (int) rect.left;
+            int touchTop = (int) rect.top;
 
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                UpdateLabels(x - touchLeft, y - touchTop);
-                break;
-            case MotionEvent.ACTION_MOVE:
-                UpdateLabels(x - touchLeft, y - touchTop);
-                break;
-            case MotionEvent.ACTION_UP:
-                UpdateLabels((int) (rect.width() / 2), (int) (rect.height() / 2));
-                break;
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    UpdateLabels(x - touchLeft, y - touchTop);
+                    break;
+                case MotionEvent.ACTION_MOVE:
+                    UpdateLabels(x - touchLeft, y - touchTop);
+                    break;
+                case MotionEvent.ACTION_UP:
+                    UpdateLabels((int) (rect.width() / 2), (int) (rect.height() / 2));
+                    break;
+            }
         }
         return false;
     }
@@ -142,6 +168,11 @@ public class Control extends AppCompatActivity {
 
         if (serialPort != null) {
             serialPort.write(String.format("[%d,%d]", calculatedX, calculatedY).getBytes());
+        }
+        if (clientObj != null
+                && PreferenceManager.getDefaultSharedPreferences(this)
+                .getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
+            clientObj.SendMessage(String.format("[%d,%d]", calculatedX, calculatedY));
         }
     }
 

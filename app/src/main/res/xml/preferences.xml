@@ -2,7 +2,14 @@
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
     <EditTextPreference
         android:key="pref_remoteIP"
+        android:inputType="phone"
         android:title="@string/pref_remoteIP"
         android:summary="@string/pref_remoteIP_summ"
-        android:defaultValue="192.168.0.1" />
+        android:defaultValue="192.168.0.1"
+        android:dependency="pref_actAsClient"/>
+    <CheckBoxPreference
+        android:key="pref_actAsClient"
+        android:title="@string/pref_actAsClient"
+        android:summary="@string/pref_actAsClient_summ"
+        android:defaultValue="false"/>
 </PreferenceScreen>

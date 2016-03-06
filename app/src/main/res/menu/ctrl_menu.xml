@@ -6,9 +6,4 @@
         android:title="@string/action_settings"
         app:showAsAction="never"/>
 
-    <EditTextPreference
-        android:key="pref_remoteIP"
-        android:title="@string/pref_remoteIP"
-        android:summary="@string/pref_remoteIP_summ"
-        android:defaultValue="192.168.0.1" />
 </menu>

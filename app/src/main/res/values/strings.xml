@@ -4,6 +4,8 @@
     <string name="connect_btn_text">Connect</string>
     <string name="clr_btn_text">Crl</string>
     <string name="pref_remoteIP">IP address</string>
-    <string name="pref_remoteIP_summ">of remote device. e.g 192.168.0.1</string>
+    <string name="pref_remoteIP_summ">of server. e.g 192.168.0.1</string>
     <string name="action_settings">Settings</string>
+    <string name="pref_actAsClient">Act as client</string>
+    <string name="pref_actAsClient_summ">By default, app acts as server.</string>
 </resources>
