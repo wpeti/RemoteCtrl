@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">RemoteCtrl</string>
+
+    <string name="connect_btn_text">Connect</string>
+    <string name="clr_btn_text">Crl</string>
+    <string name="pref_remoteIP">IP address</string>
+    <string name="pref_remoteIP_summ">of remote device. e.g 192.168.0.1</string>
+    <string name="action_settings">Settings</string>
+</resources>
