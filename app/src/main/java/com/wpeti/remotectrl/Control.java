@@ -46,8 +46,10 @@ public class Control extends AppCompatActivity {
 
     TouchFrameLayout touchAreaLayout;
 
+    Intent intent;
+    SocketServiceResultReceiver resultReceiver;
+
     SocketClient clientObj;
-    SocketServer serverObj;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -66,7 +68,10 @@ public class Control extends AppCompatActivity {
                 Server_ip = serverIP;
             }};
         } else {
-            serverObj = new SocketServer(textView);
+            resultReceiver = new SocketServiceResultReceiver(null, textView);
+            intent = new Intent(this, SocketService.class);
+            intent.putExtra("receiver", resultReceiver);
+            startService(intent);
         }
 
         touchAreaLayout = (TouchFrameLayout) findViewById(R.id.touchArea);
@@ -92,7 +97,19 @@ public class Control extends AppCompatActivity {
     @Override
     protected void onStop() {
         super.onStop();
-        unregisterReceiver(broadcastReceiver);
+        try {
+            unregisterReceiver(broadcastReceiver);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (isFinishing()) {
+            stopService(intent);
+        }
     }
 
     @Override

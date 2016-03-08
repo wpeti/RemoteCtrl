@@ -1,8 +1,11 @@
 package com.wpeti.remotectrl;
 
-import android.app.Activity;
+import android.app.Service;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
+import android.os.ResultReceiver;
 import android.widget.TextView;
 
 import java.io.BufferedReader;
@@ -12,27 +15,35 @@ import java.net.ServerSocket;
 import java.net.Socket;
 
 /**
- * Created by wpeti on 2016.03.06..
+ * Created by wpeti on 2016.03.07..
  */
-public class SocketServer {
-
+public class SocketService extends Service {
     private ServerSocket serverSocket;
-
     Handler updateConversationHandler;
     Thread serverThread = null;
-    private TextView text;
+    ResultReceiver resultReceiver;
 
-    public static final int SERVERPORT = 1122;
+    public static final int SERVERPORT = 11111;
 
-    SocketServer(TextView OutputTextView) {
-        text = OutputTextView;
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Bundle b = intent.getExtras();
+        resultReceiver = intent.getParcelableExtra("receiver");
+
+        return super.onStartCommand(intent, flags, startId);
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
         updateConversationHandler = new Handler();
-
         this.serverThread = new Thread(new ServerThread());
         this.serverThread.start();
     }
 
-    protected void CloseSocket() {
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
         try {
             serverSocket.close();
         } catch (IOException e) {
@@ -40,26 +51,24 @@ public class SocketServer {
         }
     }
 
-    private ServerSocket getServerSocket() {
-        if (serverSocket == null) {
+    @Override
+    public IBinder onBind(Intent intent) {
+        return null;
+    }
+
+    class ServerThread implements Runnable {
+        public void run() {
+            Socket socket = null;
             try {
                 serverSocket = new ServerSocket(SERVERPORT);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        }
-        return serverSocket;
-    }
-
-    class ServerThread implements Runnable {
-        public void run() {
-
             while (!Thread.currentThread().isInterrupted()) {
-
                 try {
-                    CommunicationThread commThread = new CommunicationThread(getServerSocket().accept());
+                    socket = serverSocket.accept();
+                    CommunicationThread commThread = new CommunicationThread(socket);
                     new Thread(commThread).start();
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -68,15 +77,11 @@ public class SocketServer {
     }
 
     class CommunicationThread implements Runnable {
-
         private Socket clientSocket;
         private BufferedReader input;
-
         public CommunicationThread(Socket clientSocket) {
             this.clientSocket = clientSocket;
-
             try {
-
                 this.input = new BufferedReader(new InputStreamReader(this.clientSocket.getInputStream()));
             } catch (IOException e) {
                 e.printStackTrace();
@@ -87,9 +92,7 @@ public class SocketServer {
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     String read = input.readLine();
-
                     updateConversationHandler.post(new updateUIThread(read));
-
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
@@ -99,14 +102,29 @@ public class SocketServer {
 
     class updateUIThread implements Runnable {
         private String msg;
-
         public updateUIThread(String str) {
             this.msg = str;
         }
-
         @Override
         public void run() {
-            text.setText(text.getText().toString() + "Client Says: " + msg + "\n");
+            if (resultReceiver != null && !msg.isEmpty()) {
+                Bundle bundle = new Bundle();
+                bundle.putString("socmsg", msg);
+                resultReceiver.send(0, bundle);
+            }
+        }
+    }
+
+    public class MyResultReceiver extends ResultReceiver {
+        TextView mTxtView;
+        public MyResultReceiver(Handler handler, TextView textView) {
+            super(handler);
+            mTxtView = textView;
+        }
+
+        @Override
+        protected void onReceiveResult(int resultCode, Bundle resultData) {
+            new SocketServiceUpdateUI(resultData.getString("socmsg"), mTxtView).run();
         }
     }
 }

@@ -18,7 +18,7 @@ import java.net.UnknownHostException;
 public class SocketClient {
     private Socket socket;
 
-    private int ServerPort = 1122;
+    private int ServerPort = 11111;
     public String Server_ip = "10.0.2.2";
 
     SocketClient()
