@@ -27,9 +27,10 @@ public class SocketService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Bundle b = intent.getExtras();
-        resultReceiver = intent.getParcelableExtra("receiver");
-
+        if (intent != null) {
+            Bundle b = intent.getExtras();
+            resultReceiver = intent.getParcelableExtra("receiver");
+        }
         return super.onStartCommand(intent, flags, startId);
     }
 

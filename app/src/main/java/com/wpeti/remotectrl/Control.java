@@ -12,9 +12,11 @@ import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.preference.PreferenceManager;
+import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -29,8 +31,11 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 public class Control extends AppCompatActivity {
     private static final String ACTION_USB_PERMISSION = "com.android.example.USB_PERMISSION";
@@ -46,10 +51,9 @@ public class Control extends AppCompatActivity {
 
     TouchFrameLayout touchAreaLayout;
 
-    Intent intent;
+    Intent socketClientServiceIntent;
+    Intent socketServiceIntent;
     SocketServiceResultReceiver resultReceiver;
-
-    SocketClient clientObj;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,17 +65,11 @@ public class Control extends AppCompatActivity {
         textView = (TextView) findViewById(R.id.textView);
         connectBtn = (Button) findViewById(R.id.Connect);
 
-        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
-        final String serverIP = prefs.getString(SettingsActivity.PREF_REMOTE_IP, "");
-        if (prefs.getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
-            clientObj = new SocketClient() {{
-                Server_ip = serverIP;
-            }};
-        } else {
+        if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
             resultReceiver = new SocketServiceResultReceiver(null, textView);
-            intent = new Intent(this, SocketService.class);
-            intent.putExtra("receiver", resultReceiver);
-            startService(intent);
+            socketServiceIntent = new Intent(this, SocketService.class);
+            socketServiceIntent.putExtra("receiver", resultReceiver);
+            startService(socketServiceIntent);
         }
 
         touchAreaLayout = (TouchFrameLayout) findViewById(R.id.touchArea);
@@ -108,7 +106,7 @@ public class Control extends AppCompatActivity {
     protected void onDestroy() {
         super.onDestroy();
         if (isFinishing()) {
-            stopService(intent);
+            //stop services
         }
     }
 
@@ -186,10 +184,14 @@ public class Control extends AppCompatActivity {
         if (serialPort != null) {
             serialPort.write(String.format("[%d,%d]", calculatedX, calculatedY).getBytes());
         }
-        if (clientObj != null
-                && PreferenceManager.getDefaultSharedPreferences(this)
+
+        if (PreferenceManager.getDefaultSharedPreferences(this)
                 .getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
-            clientObj.SendMessage(String.format("[%d,%d]", calculatedX, calculatedY));
+            socketClientServiceIntent = new Intent(this, SocketClientService.class);
+            socketClientServiceIntent.putExtra("serverIpAndMsg", String.format("%s=[%d,%d]",
+                            PreferenceManager.getDefaultSharedPreferences(this).getString(SettingsActivity.PREF_REMOTE_IP, ""),
+                            calculatedX, calculatedY));
+            startService(socketClientServiceIntent);
         }
     }
 
@@ -206,7 +208,7 @@ public class Control extends AppCompatActivity {
         HashMap<String, UsbDevice> usbDevices = usbManager.getDeviceList();
         if (!usbDevices.isEmpty()) {
             boolean keep = true;
-            for (Map.Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
+            for (Entry<String, UsbDevice> entry : usbDevices.entrySet()) {
                 device = entry.getValue();
                 int deviceVID = device.getVendorId();
                 tvAppend(textView, String.valueOf(deviceVID));
