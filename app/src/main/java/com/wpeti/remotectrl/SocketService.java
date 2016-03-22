@@ -108,7 +108,7 @@ public class SocketService extends Service {
         }
         @Override
         public void run() {
-            if (resultReceiver != null && !msg.isEmpty()) {
+            if (resultReceiver != null && msg!= null && !msg.isEmpty()) {
                 Bundle bundle = new Bundle();
                 bundle.putString("socmsg", msg);
                 resultReceiver.send(0, bundle);
