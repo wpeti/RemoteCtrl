@@ -5,18 +5,15 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.hardware.usb.UsbDevice;
 import android.hardware.usb.UsbDeviceConnection;
 import android.hardware.usb.UsbManager;
 import android.preference.PreferenceManager;
-import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.util.Pair;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
@@ -31,10 +28,7 @@ import com.felhr.usbserial.UsbSerialDevice;
 import com.felhr.usbserial.UsbSerialInterface;
 
 import java.io.UnsupportedEncodingException;
-import java.util.AbstractMap;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Map.Entry;
 
 public class Control extends AppCompatActivity {
@@ -65,12 +59,7 @@ public class Control extends AppCompatActivity {
         textView = (TextView) findViewById(R.id.textView);
         connectBtn = (Button) findViewById(R.id.Connect);
 
-        if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
-            resultReceiver = new SocketServiceResultReceiver(null, textView);
-            socketServiceIntent = new Intent(this, SocketService.class);
-            socketServiceIntent.putExtra("receiver", resultReceiver);
-            startService(socketServiceIntent);
-        }
+        initializeSocService();
 
         touchAreaLayout = (TouchFrameLayout) findViewById(R.id.touchArea);
 
@@ -90,6 +79,15 @@ public class Control extends AppCompatActivity {
         filter.addAction(UsbManager.ACTION_USB_DEVICE_ATTACHED);
         filter.addAction(UsbManager.ACTION_USB_DEVICE_DETACHED);
         registerReceiver(broadcastReceiver, filter);
+    }
+
+    private void initializeSocService() {
+        if (!PreferenceManager.getDefaultSharedPreferences(this).getBoolean(SettingsActivity.PREF_ACT_AS_CLIENT, false)) {
+            resultReceiver = new SocketServiceResultReceiver(null, textView, serialPort);
+            socketServiceIntent = new Intent(this, SocketService.class);
+            socketServiceIntent.putExtra("receiver", resultReceiver);
+            startService(socketServiceIntent);
+        }
     }
 
     @Override
@@ -256,7 +254,7 @@ public class Control extends AppCompatActivity {
                                 serialPort.setFlowControl(UsbSerialInterface.FLOW_CONTROL_OFF);
                                 serialPort.read(mCallback); //
                                 tvAppend(textView, "Serial Connection Opened!\n");
-
+                                initializeSocService();
                             } else {
                                 Log.d("SERIAL", "PORT NOT OPEN");
                             }

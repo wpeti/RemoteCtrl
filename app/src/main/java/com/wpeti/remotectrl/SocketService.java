@@ -108,24 +108,11 @@ public class SocketService extends Service {
         }
         @Override
         public void run() {
-            if (resultReceiver != null && !msg.isEmpty()) {
+            if (resultReceiver != null && msg != null && !msg.isEmpty()) {
                 Bundle bundle = new Bundle();
                 bundle.putString("socmsg", msg);
                 resultReceiver.send(0, bundle);
             }
-        }
-    }
-
-    public class MyResultReceiver extends ResultReceiver {
-        TextView mTxtView;
-        public MyResultReceiver(Handler handler, TextView textView) {
-            super(handler);
-            mTxtView = textView;
-        }
-
-        @Override
-        protected void onReceiveResult(int resultCode, Bundle resultData) {
-            new SocketServiceUpdateUI(resultData.getString("socmsg"), mTxtView).run();
         }
     }
 }
